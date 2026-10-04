@@ -10,18 +10,29 @@
         
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #0f172a;
+            /* 加入淺色動態漸層背景 */
+            background: linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 50%, #dcfce7 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
             cursor: crosshair;
             -ms-overflow-style: none;
             scrollbar-width: none;
             user-select: none;
-            overflow: hidden; /* 防止視窗滾動 */
+            overflow: hidden;
         }
         body::-webkit-scrollbar { display: none; }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
         
         .tactical-container {
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.5);
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            /* 改為半透明玻璃材質，讓後方的淺色透出來 */
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.2), inset 0 0 10px rgba(16, 185, 129, 0.2);
         }
         
         .sniper-btn {
@@ -32,7 +43,6 @@
         }
         .sniper-btn:active { transform: scale(0.95); }
         
-        /* 遊戲區域特效 */
         .scanline {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -43,7 +53,6 @@
             z-index: 10;
         }
         
-        /* 掉落物標靶 */
         .falling-target {
             position: absolute;
             padding: 8px 12px;
@@ -65,7 +74,6 @@
             box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
         }
         
-        /* 砲塔 */
         #turret-container {
             position: absolute;
             bottom: 0;
@@ -98,7 +106,6 @@
             transition: transform 0.05s linear;
         }
         
-        /* 雷射光束 */
         .laser-beam {
             position: absolute;
             height: 3px;
@@ -114,7 +121,6 @@
             100% { opacity: 0; height: 1px; }
         }
         
-        /* 爆炸特效 */
         .explosion {
             position: absolute;
             border-radius: 50%;
@@ -223,9 +229,34 @@
         <div class="h-1 bg-slate-800 w-full z-20 shrink-0 relative">
             <div id="progress-bar" class="h-full bg-emerald-500 transition-all duration-300 shadow-[0_0_10px_#10b981]" style="width: 0%"></div>
         </div>
+
+        <!-- 判定錯誤解釋與繼續挑戰覆蓋層 -->
+        <div id="explanation-overlay" class="hidden absolute inset-0 bg-slate-900/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-800 border-2 border-red-500 rounded-xl p-6 max-w-lg w-full shadow-2xl transform transition-all">
+                <h3 class="text-2xl font-bold text-red-400 mb-4 flex items-center gap-2">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    失誤！目標分析報告
+                </h3>
+                <div class="text-slate-200 space-y-4 font-mono text-lg mb-6">
+                    <p class="border-b border-slate-600 pb-2 text-sm text-slate-400">請熟記以下分析，以利後續作戰：</p>
+                    <p class="leading-relaxed"><span class="text-slate-400 inline-block w-16">句子：</span><span id="exp-sentence" class="text-white"></span></p>
+                    <p><span class="text-slate-400 inline-block w-16">類型：</span><span id="exp-type" class="text-blue-300 font-bold"></span> <span id="exp-reason" class="text-sm text-slate-400 block mt-1"></span></p>
+                    <div class="bg-slate-900 p-3 rounded border border-slate-700 space-y-2">
+                        <p><span class="text-slate-400 inline-block w-16">本體：</span><span id="exp-tenor" class="text-red-400 font-bold bg-red-900/30 px-2 rounded"></span></p>
+                        <p><span class="text-slate-400 inline-block w-16">喻詞：</span><span id="exp-connector" class="text-yellow-400 font-bold bg-yellow-900/30 px-2 rounded"></span></p>
+                        <p><span class="text-slate-400 inline-block w-16">喻體：</span><span id="exp-vehicle" class="text-emerald-400 font-bold bg-emerald-900/30 px-2 rounded"></span></p>
+                    </div>
+                </div>
+                <button onclick="hideExplanation()" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded transition-colors text-xl tracking-wider shadow-[0_0_15px_rgba(220,38,38,0.5)]">
+                    明白，繼續挑戰！
+                </button>
+            </div>
+        </div>
+
     </div>
 
 <script>
+// 擴充為 31 題
 const questions = [
     { text: "平靜的湖面像一面大鏡子。", parts: ["平靜的", "湖面", "像", "一面", "大鏡子", "。"], type: "明喻", answer: [1, 2, 4] },
     { text: "天上的雲朵彷彿是鬆軟的棉花糖。", parts: ["天上的", "雲朵", "彷彿是", "鬆軟的", "棉花糖", "。"], type: "明喻", answer: [1, 2, 4] },
@@ -241,13 +272,32 @@ const questions = [
     { text: "他的心變成了一塊冰。", parts: ["他的", "心", "變成了", "一塊", "冰", "。"], type: "暗喻", answer: [1, 2, 4] },
     { text: "漫天飛舞的雪花宛如白色的蝴蝶。", parts: ["漫天飛舞的", "雪花", "宛如", "白色的", "蝴蝶", "。"], type: "明喻", answer: [1, 2, 4] },
     { text: "我們的學校是一座大花園。", parts: ["我們的", "學校", "是", "一座大", "花園", "。"], type: "暗喻", answer: [1, 2, 4] },
-    { text: "童年就像一場美麗的夢。", parts: ["童年", "就像", "一場美麗的", "夢", "。"], type: "明喻", answer: [0, 1, 3] }
+    { text: "童年就像一場美麗的夢。", parts: ["童年", "就像", "一場美麗的", "夢", "。"], type: "明喻", answer: [0, 1, 3] },
+    
+    // 新增擴充題目
+    { text: "妹妹的臉蛋紅得像蘋果。", parts: ["妹妹的", "臉蛋", "紅得像", "蘋果", "。"], type: "明喻", answer: [1, 2, 3] },
+    { text: "人生是一場馬拉松。", parts: ["人生", "是", "一場", "馬拉松", "。"], type: "暗喻", answer: [0, 1, 3] },
+    { text: "太陽猶如一個大火球。", parts: ["太陽", "猶如", "一個", "大火球", "。"], type: "明喻", answer: [0, 1, 3] },
+    { text: "這座城市是一座鋼筋水泥的森林。", parts: ["這座", "城市", "是", "一座鋼筋水泥的", "森林", "。"], type: "暗喻", answer: [1, 2, 4] },
+    { text: "大象的腿宛如四根粗壯的柱子。", parts: ["大象的", "腿", "宛如", "四根粗壯的", "柱子", "。"], type: "明喻", answer: [1, 2, 4] },
+    { text: "時間是治癒一切的良藥。", parts: ["時間", "是", "治癒一切的", "良藥", "。"], type: "暗喻", answer: [0, 1, 3] },
+    { text: "小草像綠色的地毯鋪滿大地。", parts: ["小草", "像", "綠色的", "地毯", "，", "鋪滿大地", "。"], type: "明喻", answer: [0, 1, 3] },
+    { text: "母親的懷抱是避風的港灣。", parts: ["母親的", "懷抱", "是", "避風的", "港灣", "。"], type: "暗喻", answer: [1, 2, 4] },
+    { text: "他的聲音洪亮得如同打雷。", parts: ["他的", "聲音", "洪亮得如同", "打雷", "。"], type: "明喻", answer: [1, 2, 3] },
+    { text: "友誼是一把遮風擋雨的傘。", parts: ["友誼", "是", "一把遮風擋雨的", "傘", "。"], type: "暗喻", answer: [0, 1, 3] },
+    { text: "秋天的落葉彷彿飛舞的黃蝶。", parts: ["秋天的", "落葉", "彷彿", "飛舞的", "黃蝶", "。"], type: "明喻", answer: [1, 2, 4] },
+    { text: "希望是黑暗中的一線光明。", parts: ["希望", "是", "黑暗中的", "一線光明", "。"], type: "暗喻", answer: [0, 1, 3] },
+    { text: "弟弟的眼睛亮得像兩顆星星。", parts: ["弟弟的", "眼睛", "亮得像", "兩顆", "星星", "。"], type: "明喻", answer: [1, 2, 4] },
+    { text: "地球是孕育生命的搖籃。", parts: ["地球", "是", "孕育生命的", "搖籃", "。"], type: "暗喻", answer: [0, 1, 3] },
+    { text: "老師的教誨是一陣溫暖的春風。", parts: ["老師的", "教誨", "是", "一陣溫暖的", "春風", "。"], type: "暗喻", answer: [1, 2, 4] },
+    { text: "那彎彎的小河像一條銀色的絲帶。", parts: ["那彎彎的", "小河", "像", "一條銀色的", "絲帶", "。"], type: "明喻", answer: [1, 2, 4] }
 ];
 
 let currentQuestionIndex = 0;
 let score = 0;
 let shuffledQuestions = [];
 let isPhase2 = false;
+let isPaused = false;
 
 // 掉落遊戲變數
 let animationFrameId;
@@ -278,7 +328,8 @@ const els = {
         document.getElementById('target-indicator-0'),
         document.getElementById('target-indicator-1'),
         document.getElementById('target-indicator-2')
-    ]
+    ],
+    explanationOverlay: document.getElementById('explanation-overlay')
 };
 
 function shuffle(array) {
@@ -291,6 +342,7 @@ function shuffle(array) {
     return array;
 }
 
+// 語音輸出改為廣東話
 function speakCurrentSentence() {
     if (!('speechSynthesis' in window)) return;
     const text = shuffledQuestions[currentQuestionIndex].text;
@@ -298,8 +350,8 @@ function speakCurrentSentence() {
     if (synth.speaking) synth.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'zh-TW';
-    utterance.rate = 0.95;
+    utterance.lang = 'zh-HK'; // 設定為廣東話
+    utterance.rate = 0.9;     // 稍微放慢速度
     synth.speak(utterance);
 }
 
@@ -316,6 +368,7 @@ function startGame() {
 
 function loadQuestion() {
     isPhase2 = false;
+    isPaused = false;
     const q = shuffledQuestions[currentQuestionIndex];
     
     els.progressDisplay.textContent = `${currentQuestionIndex + 1}/15`;
@@ -337,29 +390,62 @@ function loadQuestion() {
     speakCurrentSentence();
 }
 
+// 顯示錯誤解釋面板
+function showExplanation(context) {
+    const q = shuffledQuestions[currentQuestionIndex];
+    document.getElementById('exp-sentence').textContent = q.text;
+    document.getElementById('exp-type').textContent = q.type;
+    
+    let reason = "";
+    if (q.type === "明喻") {
+        reason = "(句子中包含明顯的喻詞，例如：像、彷彿、宛如、如同等)";
+    } else if (q.type === "暗喻") {
+        reason = "(句子中的喻詞較為隱含，通常替換為：是、變成、成為等)";
+    }
+    document.getElementById('exp-reason').textContent = reason;
+    
+    document.getElementById('exp-tenor').textContent = q.parts[q.answer[0]];
+    document.getElementById('exp-connector').textContent = q.parts[q.answer[1]];
+    document.getElementById('exp-vehicle').textContent = q.parts[q.answer[2]];
+    
+    els.explanationOverlay.classList.remove('hidden');
+}
+
+// 隱藏錯誤面板並繼續
+function hideExplanation() {
+    els.explanationOverlay.classList.add('hidden');
+    if (isPhase2) {
+        lastTime = performance.now(); // 避免時間差造成物體瞬間掉落
+        isPaused = false;
+    }
+}
+
 function checkType(selectedType) {
     const q = shuffledQuestions[currentQuestionIndex];
     if (selectedType === q.type) {
         addScore(10);
         setStatus(`> 判定正確。目標確認為 [${q.type}]。啟動防空攔截模式...`, "text-emerald-400");
+        els.phase1Controls.classList.add('hidden');
+        els.phase1Controls.classList.remove('flex');
         setTimeout(() => startPhase2(), 1000);
     } else {
         setStatus(`> 警告：判定錯誤。目標應為 [${q.type}]。`, "text-red-500");
         shakeScreen();
+        // 彈出解析面板
+        showExplanation("phase1");
     }
-    els.phase1Controls.classList.add('hidden');
-    els.phase1Controls.classList.remove('flex');
 }
 
 function startPhase2() {
     isPhase2 = true;
+    isPaused = false;
     currentTargetIndex = 0;
     
     // 縮小上方句子顯示，留出空間給空戰區
     els.sentenceDisplay.classList.remove('text-2xl', 'text-slate-100');
     els.sentenceDisplay.classList.add('text-lg', 'text-slate-400');
     
-    setStatus("> 攔截模式：請使用火砲擊落對應的詞組標靶", "text-yellow-400");
+    setStatus("> 攔截模式：請使用火砲依序擊落對應的詞組標靶", "text-yellow-400");
     updateIndicators();
     
     els.fallingArena.classList.remove('hidden');
@@ -420,7 +506,7 @@ function initFallingObjects() {
                 // 使用 onpointerdown 統一滑鼠與觸控行為
                 el.onpointerdown = (e) => { 
                     e.stopPropagation(); 
-                    fireLaser(e, index, el); 
+                    if(!isPaused) fireLaser(e, index, el); 
                 };
                 
                 fallingObjects.push({ element: el, x, y, speed, width, index });
@@ -431,6 +517,13 @@ function initFallingObjects() {
 
 function gameLoop(time) {
     if (!isPhase2) return;
+    
+    // 若暫停中，則只維持迴圈更新 lastTime，但不移動物體
+    if (isPaused) {
+        lastTime = time;
+        animationFrameId = requestAnimationFrame(gameLoop);
+        return;
+    }
     
     const deltaTime = time - lastTime;
     lastTime = time;
@@ -445,7 +538,6 @@ function gameLoop(time) {
         if (obj.y > arenaHeight) {
             obj.y = -50;
             obj.x = Math.random() * (arenaWidth - obj.width - 40) + 20;
-            // 稍微改變速度增加不確定性
             obj.speed = (Math.random() * 0.05) + 0.04; 
         }
         
@@ -457,29 +549,26 @@ function gameLoop(time) {
 }
 
 function aimTurret(e) {
-    if (!isPhase2) return;
+    if (!isPhase2 || isPaused) return;
     const rect = els.fallingArena.getBoundingClientRect();
     
     // 砲塔基座大約在底部中間
     const turretX = rect.width / 2;
     const turretY = rect.height;
     
-    // 獲取觸控或滑鼠座標
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
     
-    // 計算角度 (atan2 回傳弧度)
+    // 計算角度
     const angle = Math.atan2(mouseY - turretY, mouseX - turretX) * 180 / Math.PI;
-    
-    // 調整為 CSS rotate 角度 (0度為垂直向上)
     els.turretGun.style.transform = `rotate(${angle + 90}deg)`;
 }
 
 function fireLaser(e, targetIndex = -1, targetEl = null) {
-    if (!isPhase2) return;
+    if (!isPhase2 || isPaused) return;
     
     const rect = els.fallingArena.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -488,14 +577,11 @@ function fireLaser(e, targetIndex = -1, targetEl = null) {
     const clickX = clientX - rect.left;
     const clickY = clientY - rect.top;
     
-    // 讓砲塔瞬間對準點擊位置
     aimTurret({clientX, clientY});
     shakeScreen();
     
-    // 繪製雷射線
     drawLaserBeam(rect.width / 2, rect.height - 10, clickX, clickY);
     
-    // 判斷是否擊中目標
     if (targetEl !== null && targetIndex !== -1) {
         checkHit(targetIndex, targetEl, clickX, clickY);
     }
@@ -525,7 +611,6 @@ function checkHit(hitIndex, el, x, y) {
         addScore(10);
         createExplosion(x, y);
         
-        // 移除該 DOM 與陣列資料
         el.remove();
         fallingObjects = fallingObjects.filter(obj => obj.index !== hitIndex);
         
@@ -533,7 +618,6 @@ function checkHit(hitIndex, el, x, y) {
         updateIndicators();
         
         if (currentTargetIndex >= 3) {
-            // 三個目標都擊落了
             setStatus("> 區域淨空！目標全數摧毀。", "text-emerald-400 font-bold animate-pulse");
             endPhase2();
         } else {
@@ -542,9 +626,13 @@ function checkHit(hitIndex, el, x, y) {
     } else {
         // 擊中錯誤目標
         setStatus(`> 警告：目標錯誤！您打到了干擾物。請尋找：[${TARGET_LABELS[currentTargetIndex]}]`, "text-red-500");
-        // 讓錯誤的標靶閃紅光並震動
+        
         el.style.backgroundColor = 'rgba(153, 27, 27, 0.9)';
-        setTimeout(() => el.style.backgroundColor = '', 500);
+        setTimeout(() => { if(el) el.style.backgroundColor = '' }, 500);
+        
+        // 觸發解析畫面並暫停遊戲
+        isPaused = true;
+        showExplanation("phase2");
     }
 }
 
@@ -565,9 +653,9 @@ function shakeScreen() {
 
 function endPhase2() {
     isPhase2 = false;
+    isPaused = false;
     cancelAnimationFrame(animationFrameId);
     
-    // 讓剩下的標靶掉落消失
     fallingObjects.forEach(obj => {
         if(obj.element) {
             obj.element.style.transition = 'top 1s ease-in, opacity 0.5s';
